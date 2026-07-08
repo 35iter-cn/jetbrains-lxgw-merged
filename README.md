@@ -1,29 +1,41 @@
 # jetbrains-lxgw-merged
 
-Automatically merge **JetBrainsMono NFM** with **LXGW WenKai GB Mono** for a single CJK-ready programming font, plus a built-in `U+23F8` pause symbol patch.
+自动合并 **JetBrainsMono NFM** 与 **LXGW 文楷 GB 等宽体** 的编程字体，并内置 `⏸`（U+23F8）暂停符号补丁。
 
-## Why
+## 这个字体解决什么问题
 
-`JetBrainsMono` is an excellent Latin programming font, but on Windows Alacritty falls back to system fonts for CJK characters and some symbols like `⏸` (U+23F8). This project builds a single TTF that contains:
+### ✅ 修复 Claude Code plan mode 符号与文字重叠
 
-- JetBrainsMono NFM for Latin / Nerd Font icons
-- LXGW WenKai GB Mono for CJK glyphs
-- A text-style `U+23F8` pause symbol from Sarasa Mono SC
+如果你在用 **Alacritty + Claude Code**，进入 plan mode 时底部会显示：
 
-The output font keeps the family name `JetBrainsMono LXGW Merged` so it can directly replace the manually merged version you may already be using.
+```
+⏸ plan mode on
+```
 
-## Why Only Regular Weight
+当字体缺少 `⏸`（U+23F8）时，Windows 上的 Alacritty 会 fallback 到 **Segoe UI Emoji**，把它渲染成带边框的 emoji。这个 emoji 宽度超过一个单元格，导致 `⏸` 和右侧文字**左右重叠**。
 
-This project currently builds **only the Regular weight**. Reasons:
+本仓库生成的 `JetBrainsMono LXGW Merged` 内置了文本样式的 `U+23F8`，让暂停符号保持等宽，**不再重叠**。
 
-1. `LXGW WenKai GB Mono` only provides ExtraLight / Light / Regular + Italics. It does not ship Medium, SemiBold, or Bold.
-2. Keeping the build to a single weight makes the script easy to understand and maintain.
-3. For terminal use, Regular is usually sufficient; Alacritty can synthesize bold/italic when needed.
-4. Extending to multiple weights is straightforward once the core merge logic is stable — contributions welcome.
+### ✅ 中西文混排更统一
 
-## Requirements
+`JetBrainsMono` 西文优秀，但中文会 fallback 到系统字体。本字体把 LXGW 文楷 GB 的中文合并进来，西文保持 JetBrainsMono，终端里中英文风格一致。
+
+## 为什么只做 Regular 字重
+
+## 为什么只做 Regular 字重
+
+本仓库目前**只生成 Regular 一个字重**，原因如下：
+
+1. `LXGW 文楷 GB 等宽体` 只提供 ExtraLight / Light / Regular（及对应 Italic），没有 Medium、SemiBold、Bold。
+2. 先保证 Regular 合并逻辑稳定，脚本易于理解和维护。
+3. 终端里 Regular 通常够用，Alacritty 会在需要时自动合成粗体/斜体。
+4. 后续扩展多字重很简单，只需把 `for weight in [...]` 打开即可。
+
+## 依赖
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -31,21 +43,21 @@ pip install -r requirements.txt
 - `fonttools`
 - `requests`
 
-On Windows/WSL you also need `unzip` and `curl` or `requests` for downloading.
+Windows/WSL 下还需要 `unzip` 用来解压 Nerd Fonts 的 zip 包。
 
-## Usage
+## 使用方法
 
 ```bash
 python build.py
 ```
 
-This downloads the source fonts and produces:
+构建完成后输出：
 
 ```
 dist/JetBrainsMono-LXGW-Merged.ttf
 ```
 
-You can override download URLs:
+也可以手动指定下载地址：
 
 ```bash
 python build.py \
@@ -53,41 +65,42 @@ python build.py \
   --lxgw-url "https://github.com/lxgw/LxgwWenkaiGB/releases/download/v1.522/LXGWWenKaiMonoGB-Regular.ttf"
 ```
 
-## Project Layout
+## 项目结构
 
 ```
 .
 ├── assets/
-│   └── u23f8-glyph.ttf       # Built-in U+23F8 glyph (from Sarasa Mono SC Regular)
+│   └── u23f8-glyph.ttf       # 内置 U+23F8 字形（来自 Sarasa Mono SC Regular）
 ├── examples/
-│   └── alacritty.toml        # Example Alacritty font config
-├── build.py                  # Main entry: download → merge → patch
-├── download.py               # Download source fonts
-├── merge.py                  # Merge JetBrainsMono + LXGW WenKai GB
-├── patch_u23f8.py            # Insert built-in U+23F8 glyph
+│   └── alacritty.toml        # Alacritty 配置示例
+├── build.py                  # 主入口：下载 → 合并 → 打补丁
+├── download.py               # 下载字体源文件
+├── merge.py                  # 合并 JetBrainsMono + LXGW 文楷 GB
+├── patch_u23f8.py            # 插入内置 U+23F8 字形
 ├── requirements.txt
-├── LICENSE                   # MIT for scripts
-├── OFL.txt                   # Font attribution
-└── README.md
+├── LICENSE                   # 脚本使用 MIT 协议
+├── OFL.txt                   # 字体归属与授权声明
+├── README.md                 # 本文件（中文）
+└── README.en.md              # English README
 ```
 
-## Install the Generated Font
+## 安装生成的字体
 
-The project itself only generates the TTF. To install on Windows, **do not just copy the file** — the font must be registered in the Windows font collection or DirectWrite will not find it.
+本仓库只负责生成 TTF，安装需要你自己完成。**不要直接复制文件**，否则 Windows 不会注册字体，Alacritty 会崩溃并报错 `-2003283965`。
 
-### GUI method
+### 图形界面安装
 
-Right-click `dist/JetBrainsMono-LXGW-Merged.ttf` → **Install for all users**.
+右键 `dist/JetBrainsMono-LXGW-Merged.ttf` → **为所有用户安装**。
 
-### PowerShell method (system-wide, requires admin)
+### PowerShell 安装（系统级，需要管理员）
 
 ```powershell
 $shell = New-Object -ComObject Shell.Application
-$fontFolder = $shell.Namespace(0x14)  # SSF_FONTS
+$fontFolder = $shell.Namespace(0x14)
 $fontFolder.CopyHere("C:\path\to\JetBrainsMono-LXGW-Merged.ttf", 0x14)
 ```
 
-### PowerShell method (per-user, no admin required)
+### PowerShell 安装（仅当前用户，无需管理员）
 
 ```powershell
 $shell = New-Object -ComObject Shell.Application
@@ -95,11 +108,9 @@ $fontFolder = $shell.Namespace(0x14)
 $fontFolder.CopyHere("$env:USERPROFILE\code\jetbrains-lxgw-merged\dist\JetBrainsMono-LXGW-Merged.ttf", 0x14)
 ```
 
-Then restart Alacritty.
+安装完成后**完全重启 Alacritty**。
 
-> **Why not `Copy-Item`?** Copying a `.ttf` into `C:\Windows\Fonts` or the per-user font directory does not register it. Alacritty will panic with `Result::unwrap() on an Err value: -2003283965` because DirectWrite cannot resolve the font family name.
-
-## Alacritty Config
+## Alacritty 配置
 
 ```toml
 [font]
@@ -107,18 +118,28 @@ normal.family = "JetBrainsMono LXGW Merged"
 size = 12.0
 ```
 
-See `examples/alacritty.toml` for a fuller example.
+更完整的示例见 `examples/alacritty.toml`。
 
-## License
+## 直接下载 Release 字体
 
-- Python scripts: **MIT License** (see `LICENSE`)
-- Generated fonts and included glyph assets: derived from OFL-licensed fonts (see `OFL.txt`)
+如果不想自己构建，可以直接从 GitHub Release 下载已生成好的 `JetBrainsMono-LXGW-Merged.ttf`：
 
-The generated font must remain under the SIL Open Font License. Do not relicense the font itself under MIT.
+> https://github.com/35iter-cn/jetbrains-lxgw-merged/releases
 
-## Acknowledgements
+## 许可证
+
+- Python 脚本：**MIT 许可证**（见 `LICENSE`）
+- 生成的字体及内置字形资源：衍生自 SIL Open Font License 字体（见 `OFL.txt`）
+
+生成后的字体必须继续遵守 SIL Open Font License，请勿将字体本身改为 MIT 或其他协议。
+
+## 致谢
 
 - [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
 - [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)
-- [LXGW WenKai](https://github.com/lxgw/LxgwWenkai) / [LXGW WenKai GB](https://github.com/lxgw/LxgwWenkaiGB)
-- [Sarasa Gothic](https://github.com/be5invis/Sarasa-Gothic)
+- [LXGW 文楷](https://github.com/lxgw/LxgwWenkai) / [LXGW 文楷 GB](https://github.com/lxgw/LxgwWenkaiGB)
+- [Sarasa Gothic / 更纱黑体](https://github.com/be5invis/Sarasa-Gothic)
+
+## English Documentation
+
+See [README.en.md](README.en.md).
