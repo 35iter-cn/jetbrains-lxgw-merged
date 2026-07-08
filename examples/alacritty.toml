@@ -1,0 +1,8 @@
+# Example Alacritty configuration for JetBrainsMono LXGW Merged
+
+[font]
+normal.family = "JetBrainsMono LXGW Merged"
+size = 12.0
+
+# Optional: tune offset for your monitor/DPI
+# offset.y = 3
