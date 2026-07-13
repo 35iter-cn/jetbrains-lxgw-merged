@@ -53,6 +53,7 @@ def main():
     glyph_assets = [
         ("u23f8-glyph.ttf", "U+23F8 pause (⏸) — Claude Code Plan mode"),
         ("u23f5-glyph.ttf", "U+23F5 play (⏵) — Claude Code Bypass mode"),
+        ("u23fa-glyph.ttf", "U+23FA record (⏺) — Claude Code message prefix"),
     ]
     for asset_name, description in glyph_assets:
         asset_path = Path(__file__).parent / "assets" / asset_name
