@@ -49,13 +49,25 @@ def main():
 
     merged_ttf = dist_dir / "JetBrainsMono-LXGW-Merged-merged.ttf"
     output_ttf = dist_dir / "JetBrainsMono-LXGW-Merged.ttf"
-    glyph_asset = Path(__file__).parent / "assets" / "u23f8-glyph.ttf"
 
-    if not glyph_asset.exists():
-        raise FileNotFoundError(f"Built-in glyph asset not found: {glyph_asset}")
+    glyph_assets = [
+        ("u23f8-glyph.ttf", "U+23F8 pause (⏸) — Claude Code Plan mode"),
+        ("u23f5-glyph.ttf", "U+23F5 play (⏵) — Claude Code Bypass mode"),
+    ]
+    for asset_name, description in glyph_assets:
+        asset_path = Path(__file__).parent / "assets" / asset_name
+        if not asset_path.exists():
+            raise FileNotFoundError(f"Built-in glyph asset not found: {asset_path}  ({description})")
 
     merge_fonts(str(jb_ttf), str(lxgw_ttf), str(merged_ttf), family_name=args.family_name)
-    patch_font(str(merged_ttf), str(glyph_asset), str(output_ttf))
+
+    # Apply all symbol patches in sequence, each reading the next intermediate file
+    current = str(merged_ttf)
+    for asset_name, description in glyph_assets:
+        asset_path = Path(__file__).parent / "assets" / asset_name
+        next_output = str(output_ttf)
+        patch_font(current, str(asset_path), next_output)
+        current = next_output
 
     # Clean up intermediate merged file
     merged_ttf.unlink(missing_ok=True)

@@ -1,51 +1,69 @@
 #!/usr/bin/env python3
-"""Patch U+23F8 pause symbol into a target font using built-in glyph asset."""
+"""Patch Unicode symbols into a target font using built-in glyph assets.
+
+Used by the build pipeline to add missing symbols like U+23F8 (⏸ pause,
+Claude Code Plan mode indicator) and U+23F5 (⏵ play, Claude Code
+Bypass Permissions indicator).
+
+The codepoint and glyph name are read dynamically from the asset font,
+so any single-glyph symbol TTF works.
+"""
 
 from fontTools.ttLib import TTFont
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.transformPen import TransformPen
 
-CODEPOINT = 0x23F8
-DEFAULT_GLYPH_NAME = "uni23F8"
 
+def patch_font(target_path: str, glyph_asset_path: str, output_path: str) -> None:
+    """Insert a symbol glyph from an asset font into the target font.
 
-def patch_font(target_path: str, glyph_asset_path: str, output_path: str, glyph_name: str = DEFAULT_GLYPH_NAME) -> None:
-    """Insert built-in U+23F8 glyph into target font."""
-    print(f"Patching U+23F8 into {target_path}")
+    The codepoint and glyph name are read dynamically from the asset's
+    cmap table (the first Unicode mapping found).
+    """
     target = TTFont(target_path)
     src = TTFont(glyph_asset_path)
 
     src_cmap = src['cmap'].getBestCmap()
-    if CODEPOINT not in src_cmap:
-        raise ValueError(f"Glyph asset does not contain U+{CODEPOINT:04X}")
+    if not src_cmap:
+        raise ValueError(f"Glyph asset has no Unicode mappings: {glyph_asset_path}")
 
-    src_glyph_name = src_cmap[CODEPOINT]
-    src_glyph = src['glyf'][src_glyph_name]
+    # Pick the first codepoint from the asset
+    codepoint = next(iter(src_cmap.keys()))
+    glyph_name = src_cmap[codepoint]
+
+    # Ensure glyph name is unique in the target
+    target_glyph_name = glyph_name
+    if target_glyph_name in target.getGlyphOrder():
+        target_glyph_name = f"lxgw_{glyph_name}"
+
+    print(f"Patching U+{codepoint:04X} ({chr(codepoint)}) from {glyph_asset_path} into {target_path}")
+
+    src_glyph = src['glyf'][glyph_name]
 
     scale = target['head'].unitsPerEm / src['head'].unitsPerEm
     if scale != 1.0:
-        print(f"Warning: UPM mismatch, scaling glyph by {scale}")
+        print(f"  Scaling glyph by {scale} (target UPM={target['head'].unitsPerEm}, src UPM={src['head'].unitsPerEm})")
 
     pen = TTGlyphPen(None)
     transform_pen = TransformPen(pen, (scale, 0, 0, scale, 0, 0))
     src_glyph.draw(transform_pen, src['glyf'])
     new_glyph = pen.glyph()
 
-    target['glyf'][glyph_name] = new_glyph
-    src_width, src_lsb = src['hmtx'][src_glyph_name]
-    target['hmtx'][glyph_name] = (int(round(src_width * scale)), int(round(src_lsb * scale)))
+    target['glyf'][target_glyph_name] = new_glyph
+    src_width, src_lsb = src['hmtx'][glyph_name]
+    target['hmtx'][target_glyph_name] = (int(round(src_width * scale)), int(round(src_lsb * scale)))
 
     updated = 0
     for table in target['cmap'].tables:
         if table.isUnicode():
-            table.cmap[CODEPOINT] = glyph_name
+            table.cmap[codepoint] = target_glyph_name
             updated += 1
 
     target['maxp'].numGlyphs = len(target.getGlyphOrder())
     target.save(output_path)
 
-    print(f"Saved patched font to {output_path}")
-    print(f"  U+{CODEPOINT:04X} -> {glyph_name}, width={target['hmtx'][glyph_name][0]}")
+    print(f"  Saved patched font to {output_path}")
+    print(f"  U+{codepoint:04X} -> '{target_glyph_name}', width={target['hmtx'][target_glyph_name][0]}")
     print(f"  Updated {updated} cmap table(s)")
 
 
